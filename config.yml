@@ -10,16 +10,6 @@ filename: flex_test 38
 gridMaxPower: 500
 numBuses: 10
 numChargers: 3
-routes:
-- 183
-- 22
-- 3
-- 138
-- 265
-- 122
-- 208
-- 36
-- 96
-- 23
+routes: [119, 246, 261, 96, 128, 104, 53, 48, 210, 198]
 runType: static
 solarMaxPower: 250

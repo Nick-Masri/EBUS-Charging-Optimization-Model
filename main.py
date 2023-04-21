@@ -9,6 +9,7 @@ import yaml
 from helpers import initGridPricing, initRoutes
 import matlab.engine
 import warnings
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 #########################################
@@ -64,8 +65,8 @@ for d in range(D):
     for r in range(R):
         # here we subtract one from the departure and arrival times
         # since the time is one less than the matlab time
-        tDep[r, d] = int(departure[r]-1 + d * 96)
-        tRet[r, d] = int(arrival[r]-1 + d * 96)
+        tDep[r, d] = int(departure[r] - 1 + d * 96)
+        tRet[r, d] = int(arrival[r] - 1 + d * 96)
 
 # creating tDay
 tDay = np.zeros((D, 96))
@@ -216,7 +217,6 @@ for b in range(B):
 m.addConstrs(eB[b, 0] == eB_max * busLevel for b in range(B))
 m.addConstrs(eB[b, T - 1] == eB_max * busLevel for b in range(B))
 
-
 #####################################
 # Route Coverage Constraints
 #####################################
@@ -264,9 +264,11 @@ if m.status != gp.GRB.INFEASIBLE:
         {'time': range(T), 'solarpowtoM': [variable_dict[f'solarPowToM[{i}]'] for i in range(T)]}).set_index(['time'])
     gridpowtom_df = pd.DataFrame(
         {'time': range(T), 'gridpowtom': [variable_dict[f'gridPowToM[{i}]'] for i in range(T)]}).set_index(['time'])
-    powerCM_df = pd.DataFrame({'time': range(T), 'powerCM': [variable_dict[f'powerCM[{i}]'] for i in range(T)]}).set_index(
+    powerCM_df = pd.DataFrame(
+        {'time': range(T), 'powerCM': [variable_dict[f'powerCM[{i}]'] for i in range(T)]}).set_index(
         ['time'])
-    powerDM_df = pd.DataFrame({'time': range(T), 'powerDM': [variable_dict[f'powerDM[{i}]'] for i in range(T)]}).set_index(
+    powerDM_df = pd.DataFrame(
+        {'time': range(T), 'powerDM': [variable_dict[f'powerDM[{i}]'] for i in range(T)]}).set_index(
         ['time'])
 
     onedim_df = pd.concat([eM_df, solarpowtoM_df, gridpowtom_df, powerCM_df, powerDM_df], axis=1)
@@ -300,10 +302,24 @@ if m.status != gp.GRB.INFEASIBLE:
     onedim_df.to_csv(f'outputs/1d_{filename}.csv')
     twodim_df.to_csv(f'outputs/2d_{filename}.csv')
 
+    ## Gen assignments
+    data = []
+    varName = 'assignment'
+    for d in range(D):
+        for b in range(B):
+            for r in range(R):
+                value = variable_dict[f'{varName}[{b},{d},{r}]']
+                data.append({'day': d, 'bus': b, 'route': r, f'{varName}': value})
+
+    assignment_df = pd.DataFrame(data)
+    assignment_df = assignment_df.set_index(['bus', 'day', 'route'])
+    assignment_df.to_csv(f'outputs/assignments_{filename}.csv')
+
     # create the results DataFrame
     results_df = pd.DataFrame(columns=["case_name", "numBuses", "ebMaxKwh", "numChargers", "chargerPower", "chargerEff",
                                        "routes", "emMaxKwh", "emChargePower", "emDischargePower", "emChargeEff",
-                                       "emDischargeEff", "solarMaxPower", "gridMaxPower", "obj_val", "sol_time", "date", "type"])
+                                       "emDischargeEff", "solarMaxPower", "gridMaxPower", "obj_val", "sol_time", "date",
+                                       "type"])
     results_file = 'results.csv'
 
     # try to read in the current results file (if it exists)
